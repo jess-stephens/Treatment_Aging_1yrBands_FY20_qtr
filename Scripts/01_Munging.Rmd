@@ -77,6 +77,151 @@ glimpse(df_full_seperate)
 
 
 
+
+
+
+#create FY20 columns
+```
+df_spec <- df_full_seperate %>% 
+  mutate("FY20Q1" = NA, "FY20Q2" = NA, "FY20Q3" = NA, "FY20Q4"= NA)%>% 
+  rename(FY19Q4=Value)  %>% 
+  filter(Time %in% c('2019'))  %>% 
+    select(-c(Time))
+  view(df_spec)
+  glimpse(df_spec)
+```
+
+
+
+
+#reshape FY20 long, breaking out qtr
+```
+df_pred <- df_spec %>% 
+  pivot_longer(starts_with("FY20"), 
+               names_to = c("fy", "qtr"), 
+               names_sep = "Q",
+               names_transform = list(qtr = as.integer))
+               
+view(df_pred)
+```
+
+
+
+#create the predicted quarterly values
+```
+df_pred2 <- df_pred %>% 
+  group_by(Country, sex, qtr) %>% 
+  mutate(sub = FY19Q4 * (.25 * qtr),  #subtracting .25 of current age value each quarter (current aka  fy19q4)
+         add = lag(FY19Q4)* (.25 * qtr), #add .25 of previous age each quarter
+         add = ifelse(is.na(add), 0, add)) %>% 
+  ungroup() %>% 
+  mutate(value = FY19Q4 + add - sub) %>% 
+  select(-c(sub, add))
+  
+  view(df_pred2)
+```
+
+
+
+
+#gather then re-spread to get full time series 
+```
+df_pred3 <- df_pred2 %>%
+  pivot_wider(names_from = c(fy, qtr),
+              names_sep = "Q") 
+  view(df_pred3)            
+              
+df_pred4 <- df_pred3 %>%
+  pivot_longer(-c(Age_num, sex, Country),
+               names_to = "period")
+  view(df_pred4)        
+  
+               
+```
+
+#find max age
+```
+
+range(df_pred4$Age_num)
+
+#0-80
+```
+
+
+#create age groups with cutpoints
+```
+library(data.table)
+
+PEPFARagebreaks19 <- c(0,1,5,10,15,20,25,30,35,40,45,50,85)
+PEPFARagelabels19 <- c("<01","01--04", "05--09","10--14","15-19","20-24","25-29","30-34",
+               "35-39","40-44","45-49","50+")
+
+
+df_pred5 <- setDT(df_pred4) [ , Age_cat := cut(Age_num, 
+                                breaks = PEPFARagebreaks19, 
+                                right = FALSE, 
+                                labels = PEPFARagelabels19)]
+
+
+view(df_pred5)
+
+glimpse(df_pred5)
+
+names(df_pred5)
+
+
+
+```
+
+#create correction factor
+```
+df_corr <- df_pred5 %>% 
+  group_by(Age_num, Country, sex) %>% 
+  mutate(adj_fctr = value/lag(value)) %>% 
+  ungroup()
+  view(df_corr)
+
+```
+
+#format to merge with MSD
+```
+df_corr_merge<-df_corr%>%
+  select(Country, period, sex, Age_num, Age_cat, adj_fctr)%>%
+  rename(ageasentere=Age_num, age_group=Age_cat)%>%
+  mutate_if(is.factor, as.character)%>%
+  mutate(sex=ifelse(sex==" Female", "Female", sex)) %>%
+  mutate(sex=ifelse(sex==" Male", "Male", sex)) %>%
+  glimpse()
+
+view(df_corr_merge)
+glimpse(df_corr_merge)
+
+
+write_csv(df_corr_merge,"C:/Users/jesse/OneDrive/Documents/Work Material/USAID/Treatment/Data/Output/spectrum_qtr_20201217_FY20.csv", na="")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #############################################
 # Restructure data
 ##############################################
