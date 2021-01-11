@@ -54,33 +54,42 @@ msd_format <-
 view(msd_format)
 
 
+# msd_format_long <-
+#   msd_format %>%
+#     pivot_longer(
+#    cols = qtr1:qtr4,
+#    names_to ="Q",
+#    values_to="values"  )%>%
+#   mutate(FY=paste0("FY",str_sub(fiscal_year,3,4),"Q",str_sub(Q,4,4)))
+#   #OR
+
 msd_format_long <-
   msd_format %>%
-  
-  pivot_longer(
-   cols = qtr1:qtr4,
-   names_to ="Q",
-   values_to="values"
-  )%>%
-  
-  mutate(FY=ifelse(fiscal_year %in% 2020, "FY20", "FY19"))%>%
-  #str_remove_all(c("Q"))
-%>%
- # tostring(c("FY", "Q"))
-  mutate(period= paste(FY,Q))
-  #separate(Qtr, into=c(NA,"Q"), sep="([r])") %>%
+  reshape_msd(clean=TRUE) %>% 
+ select(-period_type)
 view(msd_format_long)
-glimpse(msd_format_long)
+
+msd_format_long_malefemale <-
+  msd_format %>%
+  reshape_msd(clean=TRUE) %>% 
+ select(-period_type) %>% 
+ group_by(countryname, indicator,ageasentered,period)%>% 
+  summarise(val=sum(val,na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(sex="MaleFemale") %>% 
+  relocate(val,.after=last_col()) %>% 
+ bind_rows(msd_format_long)
 
 
-df_pred <- df_spec %>% 
-  pivot_longer(starts_with("qtr"), 
-               names_to = c("fy", "qtr"), 
-               names_sep = "Q",
-               names_transform = list(qtr = as.integer))
-               
-view(df_pred)
-
+# 
+# df_pred <- df_spec %>% 
+#   pivot_longer(starts_with("qtr"), 
+#                names_to = c("fy", "qtr"), 
+#                names_sep = "Q",
+#                names_transform = list(qtr = as.integer))
+#                
+# view(df_pred)
+# 
 
 # 
 # 
@@ -188,6 +197,7 @@ msd_format_wide <- msd_format %>%
 
 spectrum_clean_all_disagg <- read_csv("C:/Users/jesse/OneDrive/Documents/Work Material/USAID/Treatment/Data/Output/spectrum_qtr_20201217_FY20.csv")
 glimpse(spectrum_clean_all_disagg)
+view(spectrum_clean_all_disagg)
 
 spectrum_clean_all <- spectrum_clean_all_disagg %>%
     subset(sex=="MaleFemale") %>%
