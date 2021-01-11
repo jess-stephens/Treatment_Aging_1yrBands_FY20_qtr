@@ -18,10 +18,10 @@ In a previous session, you saw how to install additional packages that are not a
 #if difficulties can download zip file 
 ```{r install_github}
 #install ICPI utilities using devtools
-#install.packages("devtools")
-#library(devtools)
-#devtools::install_github("ICPI/ICPIutilities")
-#devtools::install_github("USAID-OHA-SI/glitr")
+# install.packages("devtools")
+# library(devtools)
+# devtools::install_github("ICPI/ICPIutilities")
+# devtools::install_github("USAID-OHA-SI/glitr")
 
 ```
 

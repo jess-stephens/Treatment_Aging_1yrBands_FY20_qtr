@@ -49,15 +49,64 @@ msd_format <-
          ageasentered!="01-09",
          ageasentered!="40-49",
          standardizeddisaggregate== "Age/Sex/HIVStatus") %>% #double check
-  select(countryname, indicator, ageasentered, fiscal_year, cumulative, sex) %>%
-  arrange(countryname,indicator, ageasentered, fiscal_year)  %>%
-#  view()
-  group_by(countryname,indicator, ageasentered, fiscal_year) %>%
-  summarize(
-    cumulative=sum(cumulative,na.rm=TRUE)) %>%
- #   n=n()) #will show how many rows in grouping --- also can use count() function alone instead of summ with n=n()
-   view()
+  select(countryname, indicator, ageasentered, fiscal_year, qtr1, qtr2, qtr3, qtr4, sex)
+  
 view(msd_format)
+
+
+msd_format_long <-
+  msd_format %>%
+  
+  pivot_longer(
+   cols = qtr1:qtr4,
+   names_to ="Q",
+   values_to="values"
+  )%>%
+  
+  mutate(FY=ifelse(fiscal_year %in% 2020, "FY20", "FY19"))%>%
+  #str_remove_all(c("Q"))
+%>%
+ # tostring(c("FY", "Q"))
+  mutate(period= paste(FY,Q))
+  #separate(Qtr, into=c(NA,"Q"), sep="([r])") %>%
+view(msd_format_long)
+glimpse(msd_format_long)
+
+
+df_pred <- df_spec %>% 
+  pivot_longer(starts_with("qtr"), 
+               names_to = c("fy", "qtr"), 
+               names_sep = "Q",
+               names_transform = list(qtr = as.integer))
+               
+view(df_pred)
+
+
+# 
+# 
+# msd_format_wide1 <-msd_format_long%>%
+#   select(!fiscal_year)%>%
+#   spread(indicator, Q) %>%
+#   rename(country=countryname, age_group=ageasentered)%>%  
+#   pivot_wider(
+#      names_from=FY,
+#      names_glue="{.value}_{FY}",
+#      values_from=c(TX_CURR, TX_NEW)
+#   )  %>%
+# 
+# view(msd_format_wide1)
+#   pivot_wider(names_from = c(FY, Q),
+#               names_sep = "Q") 
+# 
+# %>%
+#   arrange(countryname,indicator, ageasentered, fiscal_year) 
+# #  view()
+#   group_by(countryname,indicator, ageasentered, fiscal_year) %>%
+#   summarize(
+#     cumulative=sum(cumulative,na.rm=TRUE)) %>%
+#  #   n=n()) #will show how many rows in grouping --- also can use count() function alone instead of summ with n=n()
+#    view()
+# view(msd_format)
 
 
 ```
@@ -70,6 +119,37 @@ view(msd_format)
 
 
 ```{r load, echo=FALSE}
+
+msd_format_wide <- msd_format %>%
+  #long to wide so that tx_Curr and TX_new are on same row for country and year and age
+  spread(indicator, qtr1, qtr2, qtr3, qtr4) %>%
+  rename(country=countryname, year=fiscal_year, age_group=ageasentered)%>%  
+  pivot_wider(
+     names_from=year,
+     names_glue="{.value}_{year}",
+     values_from=c(TX_CURR, TX_NEW)
+  )  %>%
+  #change var names so mergable with spectrum data
+    mutate_if(~ is.integer(.), as.double)%>%
+  mutate(age_group=recode(age_group, "<1"="<01",
+                          "01-04"="01--04",
+                          "05-09"="05--09",
+                          "10-14"="10--14")) %>%
+  select(!TX_NEW_2019)%>%
+  glimpse()
+  
+  View(msd_format_wide)
+  glimpse(msd_format_wide)
+
+
+
+
+
+
+
+
+
+
 
  msd_format_wide <- msd_format %>%
   #long to wide so that tx_Curr and TX_new are on same row for country and year and age
@@ -105,6 +185,9 @@ view(msd_format)
 
 ```{r load, echo=FALSE}
   # glimpse(spectrum_clean_all)
+
+spectrum_clean_all_disagg <- read_csv("C:/Users/jesse/OneDrive/Documents/Work Material/USAID/Treatment/Data/Output/spectrum_qtr_20201217_FY20.csv")
+glimpse(spectrum_clean_all_disagg)
 
 spectrum_clean_all <- spectrum_clean_all_disagg %>%
     subset(sex=="MaleFemale") %>%
