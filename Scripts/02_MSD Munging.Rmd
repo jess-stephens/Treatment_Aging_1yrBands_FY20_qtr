@@ -78,46 +78,15 @@ msd_format_long_malefemale <-
   ungroup() %>% 
   mutate(sex="MaleFemale") %>% 
   relocate(val,.after=last_col()) %>% 
- bind_rows(msd_format_long)
+view()
 
+msd_format_full <-msd_format_long_malefemale %>% 
+ bind_rows(msd_format_long) %>% 
+view()
 
-# 
-# df_pred <- df_spec %>% 
-#   pivot_longer(starts_with("qtr"), 
-#                names_to = c("fy", "qtr"), 
-#                names_sep = "Q",
-#                names_transform = list(qtr = as.integer))
-#                
-# view(df_pred)
-# 
+view(msd_format_full)
 
-# 
-# 
-# msd_format_wide1 <-msd_format_long%>%
-#   select(!fiscal_year)%>%
-#   spread(indicator, Q) %>%
-#   rename(country=countryname, age_group=ageasentered)%>%  
-#   pivot_wider(
-#      names_from=FY,
-#      names_glue="{.value}_{FY}",
-#      values_from=c(TX_CURR, TX_NEW)
-#   )  %>%
-# 
-# view(msd_format_wide1)
-#   pivot_wider(names_from = c(FY, Q),
-#               names_sep = "Q") 
-# 
-# %>%
-#   arrange(countryname,indicator, ageasentered, fiscal_year) 
-# #  view()
-#   group_by(countryname,indicator, ageasentered, fiscal_year) %>%
-#   summarize(
-#     cumulative=sum(cumulative,na.rm=TRUE)) %>%
-#  #   n=n()) #will show how many rows in grouping --- also can use count() function alone instead of summ with n=n()
-#    view()
-# view(msd_format)
-
-
+names(msd_format_full)
 ```
 
 
@@ -129,22 +98,19 @@ msd_format_long_malefemale <-
 
 ```{r load, echo=FALSE}
 
-msd_format_wide <- msd_format %>%
-  #long to wide so that tx_Curr and TX_new are on same row for country and year and age
-  spread(indicator, qtr1, qtr2, qtr3, qtr4) %>%
-  rename(country=countryname, year=fiscal_year, age_group=ageasentered)%>%  
-  pivot_wider(
-     names_from=year,
-     names_glue="{.value}_{year}",
-     values_from=c(TX_CURR, TX_NEW)
-  )  %>%
-  #change var names so mergable with spectrum data
+msd_format_wide <- msd_format_full %>%
+  pivot_wider(names_from=indicator, 
+              values_from=val)  %>% 
+  rename(age_group=ageasentered, Country=countryname) %>% 
+  view()
+  # as.numeric(c(TX_CURR)) %>% 
+    #change var names so mergable with spectrum data
     mutate_if(~ is.integer(.), as.double)%>%
   mutate(age_group=recode(age_group, "<1"="<01",
                           "01-04"="01--04",
                           "05-09"="05--09",
                           "10-14"="10--14")) %>%
-  select(!TX_NEW_2019)%>%
+  # select(!TX_NEW_2019)%>%
   glimpse()
   
   View(msd_format_wide)
@@ -152,7 +118,10 @@ msd_format_wide <- msd_format %>%
 
 
 
-
+ msd_format_wide <- msd_format_full %>%
+  #long to wide so that tx_Curr and TX_new are on same row for country and year and age
+  spread(indicator, val) %>%
+view()
 
 
 
